@@ -1,0 +1,7 @@
+Options -Indexes
+<FilesMatch "(?i)\.(sql|md|bak|ini|log)$">
+    Require all denied
+</FilesMatch>
+<Files "hash.php">
+    Require all denied
+</Files>

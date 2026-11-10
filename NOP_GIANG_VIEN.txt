@@ -1,0 +1,1 @@
+XAM SNEAKER - MVP PHP + MYSQL\n\n1. LINK WEBSITE (Frontend + Backend chung): https://[TEN-MIEN-SAU-KHI-DEPLOY]/\n2. LINK GITHUB MOI: https://github.com/ducvualis/xam-sneaker-mvp\n\nAdmin noi bo (khong can nop link rieng): /admin/\nLuu y: Link tren chua duoc tao/xac minh; phai kiem tra truy cap that truoc khi nop.\n

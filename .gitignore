@@ -1,0 +1,10 @@
+# Database passwords / private configuration
+website/includes/config.local.php
+.env
+.env.*
+# Generated files
+website/uploads/*
+!website/uploads/.gitkeep
+.DS_Store
+*.log
+*.bak
