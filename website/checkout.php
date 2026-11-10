@@ -1,76 +1,48 @@
 <?php
-require_once __DIR__ . '/includes/db.php';
-include __DIR__ . '/includes/header.php';
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+require_once __DIR__.'/includes/db.php';
+$cart=$_SESSION['cart']??[];
+if (!$cart) { header('Location: /cart.php');exit; }
+// Re-query prices and product existence from MySQL before checkout (never trust session prices).
+$lines=[];$total=0;
+foreach ($cart as $key=>$item) {
+    $id=(int)($item['product']['id']??0);$qty=max(1,min(20,(int)($item['qty']??1)));
+    $stmt=$conn->prepare('SELECT id,name,image,price,discount FROM products WHERE id=?');
+    $stmt->bind_param('i',$id);$stmt->execute();$p=$stmt->get_result()->fetch_assoc();
+    if (!$p) { flash('Một sản phẩm không còn tồn tại, vui lòng kiểm tra giỏ hàng.','error');header('Location: /cart.php');exit; }
+    $price=final_price($p['price'],$p['discount']);$lines[]=['id'=>$id,'name'=>$p['name'],'size'=>$item['size'],'qty'=>$qty,'price'=>$price];$total+=$price*$qty;
 }
-
-if (!function_exists('final_price')) {
-  function final_price($price, $discount) {
-    return $discount > 0 ? $price * (100 - $discount) / 100 : $price;
-  }
-}
-
-$cart = $_SESSION['cart'] ?? [];
-if (empty($cart)) {
-  echo '<div class="center"><p>Giỏ hàng trống, không thể thanh toán.</p><a class="btn primary" href="/index.php">Về trang chủ</a></div>';
-  include __DIR__ . '/includes/footer.php'; exit;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $name    = trim($_POST['name'] ?? '');
-  $phone   = trim($_POST['phone'] ?? '');
-  $email   = trim($_POST['email'] ?? '');
-  $address = trim($_POST['address'] ?? '');
-
-  if ($name && $phone && $address) {
-    // Tính tổng
-    $total = 0;
-    foreach ($cart as $item) {
-      $fp = final_price($item['product']['price'], $item['product']['discount']);
-      $total += $fp * $item['qty'];
-    }
-
-    // Lưu đơn hàng
-    $uid = $_SESSION['user']['id'] ?? null;
-    $stmt = $conn->prepare("INSERT INTO orders (user_id, total_price, customer_name, customer_phone, customer_email, customer_address) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iissss", $uid, $total, $name, $phone, $email, $address);
-
-    if ($stmt->execute()) {
-      $order_id = $stmt->insert_id;
-
-      // Lưu item
-      $stmtItem = $conn->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
-      foreach ($cart as $item) {
-        $p    = $item['product'];
-        $fp   = final_price($p['price'], $p['discount']);
-        $pid  = $p['id']; 
-        $qty  = $item['qty']; 
-        $price= $fp;
-        $stmtItem->bind_param("iiii", $order_id, $pid, $qty, $price);
-        $stmtItem->execute();
-      }
-
-      // Clear giỏ
-      $_SESSION['cart'] = [];
-      echo '<div class="center"><h3>Đặt hàng thành công!</h3><p>Chúng tôi sẽ liên hệ xác nhận.</p><a class="btn" href="/index.php">Về trang chủ</a></div>';
-      include __DIR__ . '/includes/footer.php'; exit;
+$err='';
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    require_csrf();
+    $name=trim((string)($_POST['name']??''));$phone=trim((string)($_POST['phone']??''));
+    $email=trim((string)($_POST['email']??''));$address=trim((string)($_POST['address']??''));
+    if (app_length($name)<2 || app_length($name)>100 || !preg_match('/^[0-9+().\-\s]{9,20}$/',$phone) || app_length($address)<8 || app_length($address)>255 || ($email!==''&&!filter_var($email,FILTER_VALIDATE_EMAIL))) {
+        $err='Vui lòng nhập đầy đủ thông tin hợp lệ: họ tên, số điện thoại và địa chỉ nhận hàng.';
     } else {
-      $err = "Có lỗi khi lưu đơn hàng: " . $conn->error;
+        try {
+            $conn->begin_transaction();
+            $uid=$_SESSION['user']['id']??null;
+            $stmt=$conn->prepare('INSERT INTO orders (user_id,total_price,customer_name,customer_phone,customer_email,customer_address) VALUES (?,?,?,?,?,?)');
+            $stmt->bind_param('iissss',$uid,$total,$name,$phone,$email,$address);$stmt->execute();$orderId=$conn->insert_id;
+            $sizeColumn = order_has_size($conn);
+            $stmtItem=$conn->prepare($sizeColumn
+                ? 'INSERT INTO order_items (order_id,product_id,quantity,price,shoe_size) VALUES (?,?,?,?,?)'
+                : 'INSERT INTO order_items (order_id,product_id,quantity,price) VALUES (?,?,?,?)');
+            foreach($lines as $line){
+                $pid=$line['id'];$qty=$line['qty'];$price=$line['price'];$size=(string)$line['size'];
+                if($sizeColumn) $stmtItem->bind_param('iiiis',$orderId,$pid,$qty,$price,$size);
+                else $stmtItem->bind_param('iiii',$orderId,$pid,$qty,$price);
+                $stmtItem->execute();
+            }
+            $conn->commit();$_SESSION['cart']=[];
+            $_SESSION['last_order_id']=$orderId;
+            header('Location: /order_success.php?id='.$orderId);exit;
+        } catch(Throwable $ex){$conn->rollback();error_log('Checkout failed: '.$ex->getMessage());$err='Chưa thể lưu đơn hàng. Vui lòng thử lại, không bấm đặt hàng nhiều lần.';}
     }
-  } else {
-    $err = "Vui lòng nhập đầy đủ tên, điện thoại, địa chỉ.";
-  }
 }
+$pageTitle='Đặt hàng | XÁM SNEAKER';include __DIR__.'/includes/header.php';
 ?>
-<h2>Thanh toán</h2>
-<form method="post" class="form">
-  <?php if (!empty($err)) echo "<div style='color:#d00'>".htmlspecialchars($err)."</div>"; ?>
-  <input type="text" name="name" placeholder="Họ tên" required>
-  <input type="text" name="phone" placeholder="Số điện thoại" required>
-  <input type="email" name="email" placeholder="Email (không bắt buộc)">
-  <input type="text" name="address" placeholder="Địa chỉ nhận hàng" required>
-  <button class="btn primary" type="submit">Xác nhận đặt hàng</button>
-</form>
-<?php include __DIR__ . '/includes/footer.php'; ?>
+<div class="page-heading"><div><div class="eyebrow">THANH TOÁN</div><h1>Thông tin đặt hàng</h1><p>Vui lòng điền chính xác thông tin người nhận hàng.</p></div></div>
+<?php if($err): ?><div class="notice error"><?=e($err)?></div><?php endif; ?>
+<div class="checkout-layout"><form method="post" class="form form-panel"><?=csrf_field()?><h2>Thông tin giao hàng</h2><label>Họ và tên *</label><input name="name" maxlength="100" value="<?=e($_POST['name']??($_SESSION['user']['username']??''))?>" required><label>Số điện thoại *</label><input name="phone" maxlength="20" value="<?=e($_POST['phone']??($_SESSION['user']['phone']??''))?>" required><label>Email (không bắt buộc)</label><input type="email" name="email" maxlength="120" value="<?=e($_POST['email']??($_SESSION['user']['email']??''))?>"><label>Địa chỉ nhận hàng *</label><textarea name="address" rows="3" maxlength="255" required><?=e($_POST['address']??'')?></textarea><p class="form-hint">Đơn hàng được ghi nhận để cửa hàng xác nhận. Không có thanh toán online trong bản MVP.</p><button class="btn btn-primary" type="submit">Xác nhận đặt hàng →</button></form><aside class="order-summary"><h2>Đơn hàng (<?=count($lines)?> sản phẩm)</h2><?php foreach($lines as $line): ?><div class="summary-row"><span><?=e($line['name'])?> × <?=$line['qty']?> <small>(size <?=e($line['size'])?>)</small></span><strong><?=money($line['price']*$line['qty'])?></strong></div><?php endforeach; ?><div class="summary-total"><span>Tổng tiền hàng</span><strong><?=money($total)?></strong></div><p>Phí vận chuyển được trao đổi khi xác nhận.</p></aside></div>
+<?php include __DIR__.'/includes/footer.php'; ?>

@@ -1,56 +1,19 @@
-<?php include __DIR__ . '/includes/header.php';
-
-$err = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $login = trim($_POST['login'] ?? '');
-  $password = trim($_POST['password'] ?? '');
-  if ($login && $password) {
-    // Tìm user theo phone hoặc email
-    $stmt = $conn->prepare("SELECT * FROM users WHERE phone=? OR email=? LIMIT 1");
-    $stmt->bind_param("ss", $login, $login);
-    $stmt->execute();
-    $res = $stmt->get_result();
-
-    if ($u = $res->fetch_assoc()) {
-      // Kiểm tra mật khẩu
-      if (password_verify($password, $u['password'])) {
-        session_regenerate_id(true);
-        // Lưu session với đầy đủ thông tin, bao gồm role
-        $_SESSION['user'] = [
-          'id'       => $u['id'],
-          'username' => $u['username'],
-          'phone'    => $u['phone'],
-          'email'    => $u['email'],
-          'role'     => $u['role']
-        ];
-
-        // Nếu là admin thì chuyển thẳng vào trang quản trị
-        if ($u['role'] === 'admin') {
-          header('Location: /admin/index.php');
-          exit;
-        } else {
-          header('Location: /index.php');
-          exit;
+<?php
+require_once __DIR__.'/includes/db.php';
+$err='';
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    require_csrf();$login=trim((string)($_POST['login']??''));$pass=(string)($_POST['password']??'');
+    if($login!=='' && $pass!=='') {
+        $stmt=$conn->prepare('SELECT id,username,phone,email,password,role FROM users WHERE phone=? OR email=? LIMIT 1');
+        $stmt->bind_param('ss',$login,$login);$stmt->execute();$u=$stmt->get_result()->fetch_assoc();
+        if($u && password_verify($pass,$u['password'])) {
+            session_regenerate_id(true);unset($u['password']);$_SESSION['user']=$u;
+            header('Location: '.($u['role']==='admin'?'/admin/index.php':'/index.php'));exit;
         }
-      } else {
-        $err = 'Sai mật khẩu.';
-      }
-    } else {
-      $err = 'Tài khoản không tồn tại.';
     }
-  } else {
-    $err = 'Vui lòng nhập thông tin đăng nhập và mật khẩu.';
-  }
+    $err='Email/số điện thoại hoặc mật khẩu chưa chính xác.';
 }
+$pageTitle='Đăng nhập | XÁM SNEAKER';include __DIR__.'/includes/header.php';
 ?>
-<h2>Đăng nhập</h2>
-<form method="post" class="form">
-  <?php if ($err) echo "<div style='color:#d00'>$err</div>"; ?>
-  <input type="text" name="login" placeholder="Số điện thoại hoặc Email" required>
-  <input type="password" name="password" placeholder="Mật khẩu" required>
-  <button class="btn primary" type="submit">Đăng nhập</button>
-</form>
-<div class="center" style="margin-top:10px">
-  Chưa có tài khoản? <a class="btn" href="/register.php">Đăng ký ngay</a>
-</div>
-<?php include __DIR__ . '/includes/footer.php'; ?>
+<div class="auth-page"><div class="auth-panel"><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h1>Đăng nhập</h1><p>Đăng nhập để mua sắm và theo dõi đơn hàng.</p><?php if($err):?><div class="notice error"><?=e($err)?></div><?php endif;?><form method="post" class="form"><?=csrf_field()?><label>Email hoặc số điện thoại</label><input name="login" autocomplete="username" value="<?=e($_POST['login']??'')?>" required><label>Mật khẩu</label><input type="password" name="password" autocomplete="current-password" required><button class="btn btn-primary" type="submit">Đăng nhập →</button></form><p class="auth-alternate">Chưa có tài khoản? <a href="/register.php">Đăng ký ngay</a></p></div></div>
+<?php include __DIR__.'/includes/footer.php'; ?>

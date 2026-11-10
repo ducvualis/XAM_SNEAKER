@@ -1,43 +1,12 @@
-  </main>
-  <footer class="footer">
-    <div class="container footer-4col">
-      <!-- Cột 1: Ảnh/logo -->
-      <div class="footer-col logo-col">
-        <img src="/assets/images/logo.jpg" alt="Xám Sneaker">
-      </div>
-
-      <!-- Cột 2: Lợi ích -->
-      <div class="footer-col">
-        <h4>LỢI ÍCH KHI MUA GIÀY TẠI XÁM SNEAKER</h4>
-        <ul>
-          <li>Giao hàng cực nhanh miễn phí toàn quốc</li>
-          <li>Mua hàng siêu tiết kiệm từ 10% - 30% so với giá thị trường</li>
-          <li>Sản phẩm “Chuẩn Replica” kiểm tra hàng trước khi thanh toán</li>
-        </ul>
-      </div>
-
-      <!-- Cột 3: Giới thiệu -->
-      <div class="footer-col">
-        <h4>Xám Sneaker - Shop Giày Sneaker</h4>
-        <ul>
-          <li><a href="#">Về chúng tôi</a></li>
-          <li><a href="#">Hướng dẫn mua hàng</a></li>
-          <li><a href="#">Chính sách giao hàng</a></li>
-          <li><a href="#">Chính sách đổi trả</a></li>
-          <li><a href="#">Chính sách bảo hành</a></li>
-          <li><a href="#">Chính sách bảo mật</a></li>
-        </ul>
-      </div>
-
-      <!-- Cột 4: Liên hệ -->
-      <div class="footer-col">
-        <h4>Liên hệ</h4>
-        <p>Địa chỉ: 180 cao lỗ, P4, Q8, TP.HCM</p>
-        <p>SDT: 0799353295</p>
-        <p>Email: nguyenducvnumber99@gmail.com</p>
-        <p>Website: xamsneaker.com</p>
-      </div>
-    </div>
-  </footer>
-</body>
-</html>
+</main>
+<footer class="site-footer">
+  <div class="container footer-layout">
+    <div><div class="footer-brand">XÁM <span>SNEAKER</span></div><p>Không gian dành cho những đôi giày yêu thích và phong cách riêng của bạn.</p><p class="footer-muted">Website MVP cho mục đích học tập.</p></div>
+    <div><h4>Khám phá</h4><a href="/nike.php">Giày Nike</a><a href="/adidas.php">Giày Adidas</a><a href="/mlb.php">Giày MLB</a><a href="/search.php">Tất cả sản phẩm</a></div>
+    <div><h4>Hỗ trợ</h4><a href="/contact.php">Liên hệ</a><a href="/my_orders.php">Đơn hàng của tôi</a><a href="/profile.php">Tài khoản</a></div>
+    <div><h4>Liên hệ</h4><p>Điện thoại: 0799 353 295</p><p>Địa chỉ: TP. Hồ Chí Minh</p><p>Email: nguyenducvnumber99@gmail.com</p></div>
+  </div>
+  <div class="container footer-bottom">© <?=date('Y')?> XÁM SNEAKER · Đồ án website bán giày trực tuyến.</div>
+</footer>
+<script src="/assets/js/script.js?v=2" defer></script>
+</body></html>

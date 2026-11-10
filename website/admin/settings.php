@@ -1,43 +1,4 @@
 <?php
-require_once __DIR__ . '/../includes/db.php';
-if (!is_admin()) { header('Location: /login.php'); exit; }
-?>
-<?php
-
-if (!isset($_SESSION['user'])) {
-    header("Location: login.php");
-    exit;
-}
-
-require_once __DIR__ . '/includes/db.php';
-include __DIR__ . '/includes/admin_header.php';
-?>
-
-<div class="page-header">
-  <h2>⚙️ Cài đặt hệ thống</h2>
-</div>
-
-<div class="card">
-  <h3>Thông tin tài khoản</h3>
-  <p><strong>Tên đăng nhập:</strong> <?= htmlspecialchars($_SESSION['user']['username']) ?></p>
-  <p><strong>Quyền:</strong> <?= htmlspecialchars($_SESSION['user']['role'] ?? 'user') ?></p>
-</div>
-
-<h3>Thay đổi mật khẩu</h3>
-<form method="post" action="settings_update.php" class="form">
-  <label>Mật khẩu hiện tại</label>
-  <input type="password" name="current_password" required>
-
-  <label>Mật khẩu mới</label>
-  <input type="password" name="new_password" required>
-
-  <label>Xác nhận mật khẩu mới</label>
-  <input type="password" name="confirm_password" required>
-
-  <div class="actions">
-    <button class="btn primary" type="submit">Cập nhật</button>
-    <a class="btn secondary" href="index.php">Quay lại</a>
-  </div>
-</form>
-
-<?php include __DIR__ . '/includes/admin_footer.php'; ?>
+require_once __DIR__.'/../includes/db.php';if(!is_admin()){header('Location: /login.php');exit;}
+$adminTitle='Cài đặt tài khoản';include __DIR__.'/includes/admin_header.php';
+?><div class="panel-heading"><div><h2>Đổi mật khẩu quản trị</h2><p>Dùng mật khẩu mạnh và không sử dụng lại mật khẩu hosting.</p></div></div><form class="form" method="post" action="/admin/settings_update.php"><?=csrf_field()?><label>Mật khẩu hiện tại</label><input type="password" name="current_password" autocomplete="current-password" required><label>Mật khẩu mới (tối thiểu 8 ký tự)</label><input type="password" name="new_password" minlength="8" autocomplete="new-password" required><label>Nhập lại mật khẩu mới</label><input type="password" name="confirm_password" minlength="8" autocomplete="new-password" required><div class="actions"><button class="btn" type="submit">Đổi mật khẩu</button><a class="btn secondary" href="/admin/index.php">Hủy</a></div></form><?php include __DIR__.'/includes/admin_footer.php'; ?>

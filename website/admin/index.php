@@ -1,44 +1,12 @@
 <?php
-require_once __DIR__ . '/../includes/db.php';
-if (!is_admin()) { header('Location: /login.php'); exit; }
+require_once __DIR__.'/../includes/db.php';if(!is_admin()){header('Location: /login.php');exit;}
+$stats=$conn->query("SELECT (SELECT COUNT(*) FROM products) AS products, (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM orders) AS orders, (SELECT COALESCE(SUM(total_price),0) FROM orders WHERE status='Hoàn tất') AS revenue, (SELECT COUNT(*) FROM orders WHERE status='Đang xử lý') AS pending")->fetch_assoc();
+$recent=$conn->query('SELECT id,customer_name,total_price,status,created_at FROM orders ORDER BY id DESC LIMIT 8');
+$adminTitle='Tổng quan';include __DIR__.'/includes/admin_header.php';
 ?>
-<?php
-
-// Nếu chưa đăng nhập thì chuyển hướng về trang login
-if (!isset($_SESSION['user']) || !isset($_SESSION['user']['username'])) {
-    header("Location: login.php");
-    exit;
-}
-
-include __DIR__ . '/includes/admin_header.php';
-?>
-
-<div class="page-header">
-  <h2>📊 Dashboard</h2>
-  <div class="welcome">
-    Xin chào, 
-    <strong><?= htmlspecialchars($_SESSION['user']['username']) ?></strong>
-  </div>
-</div>
-
-<!-- Cards quản lý -->
-<div class="card-grid">
-  <div class="card">
-    <h3>👟 Sản phẩm</h3>
-    <p>Xem và quản lý tất cả sản phẩm</p>
-    <a class="btn primary" href="products.php">Đi tới sản phẩm</a>
-  </div>
-  <div class="card">
-    <h3>📦 Đơn hàng</h3>
-    <p>Theo dõi và cập nhật trạng thái đơn</p>
-    <a class="btn primary" href="orders.php">Đi tới đơn hàng</a>
-  </div>
-  <div class="card">
-    <h3>👤 Người dùng</h3>
-    <p>Quản lý tài khoản người dùng</p>
-    <a class="btn primary" href="users.php">Đi tới người dùng</a>
-  </div>
-</div>
-
-
-<?php include __DIR__ . '/includes/admin_footer.php'; ?>
+<div class="welcome-panel"><div><div class="eyebrow">BẢNG ĐIỀU KHIỂN</div><h2>Chào mừng quay lại, <?=e($_SESSION['user']['username'])?>!</h2><p>Theo dõi hoạt động của cửa hàng từ dữ liệu MySQL hiện tại.</p></div><a class="btn" href="/admin/product_add.php">+ Thêm sản phẩm</a></div>
+<div class="metric-grid"><div class="metric"><span>Tổng sản phẩm</span><strong><?=number_format($stats['products'])?></strong><small>Đang lưu trong CSDL</small></div><div class="metric"><span>Đơn hàng</span><strong><?=number_format($stats['orders'])?></strong><small>Đang xử lý: <?=$stats['pending']?></small></div><div class="metric"><span>Doanh thu đơn hoàn tất</span><strong><?=money($stats['revenue'])?></strong><small>Không bao gồm đơn chưa hoàn tất/đã hủy</small></div><div class="metric"><span>Người dùng</span><strong><?=number_format($stats['users'])?></strong><small>Tài khoản đã tạo</small></div></div>
+<div class="panel-heading"><div><h2>Đơn hàng gần đây</h2><p>Danh sách 8 đơn mới nhất</p></div><a class="btn secondary" href="/admin/orders.php">Xem tất cả →</a></div>
+<div class="table-wrap"><table class="table"><thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead><tbody><?php while($o=$recent->fetch_assoc()):?><tr><td><strong>#<?= (int)$o['id']?></strong></td><td><?=e($o['customer_name'])?></td><td><?=money($o['total_price'])?></td><td><span class="status <?= $o['status']==='Hoàn tất'?'success':'pending'?>"><?=e($o['status'])?></span></td><td><?=e($o['created_at'])?></td><td><a href="/admin/order_detail.php?id=<?=(int)$o['id']?>">Chi tiết →</a></td></tr><?php endwhile; ?></tbody></table></div>
+<p class="admin-note">* Đây là tổng giá trị các đơn đánh dấu “Hoàn tất”, không phải doanh thu tiền đã nhận hoặc lợi nhuận.</p>
+<?php include __DIR__.'/includes/admin_footer.php'; ?>

@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/db.php';
 $success = false;
 $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_csrf();
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $message = trim($_POST['message'] ?? '');
@@ -27,6 +28,7 @@ include __DIR__ . '/includes/header.php';
 <?php if ($err): ?><div style="color:#b00"><?= htmlspecialchars($err) ?></div><?php endif; ?>
 <?php if ($success): ?><div style="color:green">Đã lưu liên hệ thành công.</div><?php endif; ?>
 <form method="post" class="form">
+  <?= csrf_field() ?>
   <input type="text" name="name" placeholder="Tên của bạn" required>
   <input type="email" name="email" placeholder="Email của bạn">
   <textarea name="message" rows="5" placeholder="Nội dung" required></textarea>

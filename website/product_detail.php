@@ -1,51 +1,11 @@
-<?php include __DIR__ . '/includes/header.php'; 
-?>
-
 <?php
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$p = null;
-if ($id) {
-  $res = $conn->query("SELECT * FROM products WHERE id=$id");
-  $p = $res->fetch_assoc();
-}
-if (!$p): ?>
-  <div class="center">Sản phẩm không tồn tại. <a class="btn" href="/index.php">Về trang chủ</a></div>
+require_once __DIR__.'/includes/db.php';
+$id=max(0,(int)($_GET['id']??0));$stmt=$conn->prepare('SELECT * FROM products WHERE id=?');$stmt->bind_param('i',$id);$stmt->execute();$product=$stmt->get_result()->fetch_assoc();
+$pageTitle=($product ? $product['name'] : 'Không tìm thấy sản phẩm').' | XÁM SNEAKER';include __DIR__.'/includes/header.php';
+?>
+<?php if(!$product): ?><div class="empty-state"><h2>Không tìm thấy sản phẩm</h2><a href="/search.php" class="btn btn-primary">Khám phá sản phẩm</a></div>
 <?php else: ?>
-<div class="flex">
-  <div style="flex:1">
-    <img src="/assets/images/<?= htmlspecialchars($p['image'] ?? 'noimg.jpg') ?>" alt="" style="width:100%;max-width:500px">
-  </div>
-  <div style="flex:1">
-    <h2><?= htmlspecialchars($p['name']) ?></h2>
-    <p>Thương hiệu: <b><?= htmlspecialchars($p['brand']) ?></b></p>
-    <div class="price">
-      <?php if ($p['discount']): ?>
-        <span class="old"><?= number_format($p['price']) ?>₫</span>
-        <span class="badge">-<?= $p['discount'] ?>%</span>
-      <?php endif; ?>
-      <span><b><?= number_format(final_price($p['price'], $p['discount'])) ?>₫</b></span>
-    </div>
-    <p><?= nl2br(htmlspecialchars($p['description'] ?? '')) ?></p>
-
-    <form method="post" action="/cart.php" class="actions">
-      <input type="hidden" name="action" value="add">
-      <input type="hidden" name="id" value="<?= $p['id'] ?>">
-
-      <label for="size">Chọn size:</label>
-      <select name="size" id="size" required>
-        <option value="38">38</option>
-        <option value="39">39</option>
-        <option value="40">40</option>
-        <option value="41">41</option>
-        <option value="42">42</option>
-      </select>
-
-      <label for="quantity">Số lượng:</label>
-      <input type="number" name="quantity" id="quantity" value="1" min="1" style="width:60px;">
-
-      <button class="btn primary" type="submit">Thêm vào giỏ hàng</button>
-    </form>
-  </div>
-</div>
+<div class="breadcrumbs"><a href="/index.php">Trang chủ</a> / <a href="/search.php?brand=<?=urlencode($product['brand'])?>"><?=e($product['brand'])?></a> / <?=e($product['name'])?></div>
+<div class="detail-layout"><div class="detail-image"><img src="<?=e(product_image($product['image']))?>" alt="<?=e($product['name'])?>"></div><div class="detail-info"><div class="eyebrow"><?=e($product['brand'])?></div><h1><?=e($product['name'])?></h1><div class="detail-price"><strong><?=money(final_price($product['price'],$product['discount']))?></strong><?php if((int)$product['discount']>0):?><del><?=money($product['price'])?></del><span class="product-off inline">-<?= (int)$product['discount']?>%</span><?php endif; ?></div><p class="detail-intro">Chọn kích cỡ và số lượng trước khi thêm sản phẩm vào giỏ hàng.</p><form method="post" action="/cart.php" class="detail-form"><?=csrf_field()?><input type="hidden" name="action" value="add"><input type="hidden" name="id" value="<?= (int)$product['id'] ?>"><label for="shoe-size">Chọn size giày</label><select id="shoe-size" name="size" required><option value="">Chọn kích cỡ</option><?php foreach(range(38,42) as $size): ?><option value="<?=$size?>"><?=$size?></option><?php endforeach; ?></select><small>Size là lựa chọn đặt hàng; hệ thống MVP chưa quản lý tồn kho theo từng size.</small><label for="shoe-qty">Số lượng</label><input id="shoe-qty" type="number" name="quantity" value="1" min="1" max="20" required><button class="btn btn-primary" type="submit">🛒 Thêm vào giỏ hàng</button></form><div class="product-description"><h3>Thông tin sản phẩm</h3><p><?=nl2br(e($product['description']))?></p></div></div></div>
 <?php endif; ?>
-<?php include __DIR__ . '/includes/footer.php'; ?>
+<?php include __DIR__.'/includes/footer.php'; ?>

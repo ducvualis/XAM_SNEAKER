@@ -5,6 +5,7 @@ website/includes/config.local.php
 # Generated files
 website/uploads/*
 !website/uploads/.gitkeep
+!website/uploads/.htaccess
 .DS_Store
 *.log
 *.bak

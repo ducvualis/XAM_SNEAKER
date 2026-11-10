@@ -1,14 +1,1 @@
-    </main>
-  </div>
-
-  <footer class="admin-footer">
-    <div class="footer-content">
-      <p>&copy; <?= date('Y') ?> Xám Sneaker. Đồng bộ với giao diện web.</p>
-      <p>
-        <a href="/index.php">🏠 Quay lại trang chủ web</a> | 
-        <a href="/admin/index.php">📊 Dashboard</a>
-      </p>
-    </div>
-  </footer>
-</body>
-</html>
+</main><footer class="admin-footer">© <?=date('Y')?> XÁM SNEAKER · Hệ thống quản trị MVP</footer></div></div><script src="/assets/js/script.js?v=2" defer></script></body></html>

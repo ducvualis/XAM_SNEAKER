@@ -1,101 +1,11 @@
 <?php
-require_once __DIR__ . '/../includes/db.php';
-if (!is_admin()) { header('Location: /login.php'); exit; }
+require_once __DIR__.'/../includes/db.php';if(!is_admin()){header('Location: /login.php');exit;}
+$id=max(0,(int)($_GET['id']??0));$stmt=$conn->prepare('SELECT * FROM orders WHERE id=?');$stmt->bind_param('i',$id);$stmt->execute();$order=$stmt->get_result()->fetch_assoc();if(!$order){http_response_code(404);exit('Không tìm thấy đơn hàng.');}
+$stmt=$conn->prepare('SELECT oi.quantity,oi.price,p.name,p.image, '.(order_has_size($conn)?'oi.shoe_size':"'' AS shoe_size").' FROM order_items oi LEFT JOIN products p ON p.id=oi.product_id WHERE oi.order_id=?');$stmt->bind_param('i',$id);$stmt->execute();$items=$stmt->get_result();
+$adminTitle='Đơn hàng #'.$id;include __DIR__.'/includes/admin_header.php';
 ?>
-<?php
-
-// Kiểm tra đăng nhập
-if (!isset($_SESSION['user']) || !isset($_SESSION['user']['username'])) {
-    header("Location: login.php");
-    exit;
-}
-
-// Kết nối CSDL
-require_once __DIR__ . '/includes/db.php';
-
-include __DIR__ . '/includes/admin_header.php';
-
-$id = intval($_GET['id'] ?? 0);
-
-// Lấy thông tin đơn hàng
-$stmt = $conn->prepare("SELECT * FROM orders WHERE id=?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$order = $stmt->get_result()->fetch_assoc();
-
-if (!$order) {
-  echo "<div class='err'>Không tìm thấy đơn hàng.</div>";
-  include __DIR__ . '/includes/admin_footer.php';
-  exit;
-}
-
-// Lấy chi tiết sản phẩm trong đơn
-$stmtItems = $conn->prepare("SELECT oi.*, p.name, p.image 
-                             FROM order_items oi 
-                             JOIN products p ON oi.product_id = p.id 
-                             WHERE oi.order_id=?");
-$stmtItems->bind_param("i", $id);
-$stmtItems->execute();
-$items = $stmtItems->get_result();
-?>
-
-<div class="page-header"><h2>Chi tiết đơn hàng #<?= $order['id'] ?></h2></div>
-
-<div class="card">
-  <p><strong>Khách hàng:</strong> <?= htmlspecialchars($order['customer_name']) ?></p>
-  <p><strong>SĐT:</strong> <?= htmlspecialchars($order['customer_phone'] ?: '-') ?></p>
-  <p><strong>Email:</strong> <?= htmlspecialchars($order['customer_email'] ?: '-') ?></p>
-  <p><strong>Địa chỉ:</strong> <?= htmlspecialchars($order['customer_address']) ?></p>
-  <p><strong>Tổng tiền:</strong> <?= number_format($order['total_price']) ?>₫</p>
-  <p><strong>Trạng thái:</strong> <?= htmlspecialchars($order['status']) ?></p>
-  <p><strong>Ngày tạo:</strong> <?= $order['created_at'] ?></p>
-</div>
-
-<h3>Sản phẩm trong đơn</h3>
-<div class="table-wrap">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Ảnh</th>
-        <th>Tên sản phẩm</th>
-        <th>Số lượng</th>
-        <th>Giá</th>
-        <th>Thành tiền</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php while($item = $items->fetch_assoc()):
-        $line = $item['price'] * $item['quantity'];
-      ?>
-      <tr>
-        <td>
-          <?php if (!empty($item['image'])): ?>
-            <img src="/uploads/<?= htmlspecialchars($item['image']) ?>" style="height:50px" alt="">
-          <?php else: ?>-<?php endif; ?>
-        </td>
-        <td><?= htmlspecialchars($item['name']) ?></td>
-        <td><?= $item['quantity'] ?></td>
-        <td><?= number_format($item['price']) ?>₫</td>
-        <td><?= number_format($line) ?>₫</td>
-      </tr>
-      <?php endwhile; ?>
-    </tbody>
-  </table>
-</div>
-
-<h3>Cập nhật trạng thái đơn hàng</h3>
-<form method="post" action="order_update.php" class="form">
-  <input type="hidden" name="id" value="<?= $order['id'] ?>">
-  <label>Trạng thái</label>
-  <select name="status">
-    <option value="Đang xử lý" <?= $order['status']=='Đang xử lý'?'selected':'' ?>>Đang xử lý</option>
-    <option value="Hoàn tất" <?= $order['status']=='Hoàn tất'?'selected':'' ?>>Hoàn tất</option>
-    <option value="Đã hủy" <?= $order['status']=='Đã hủy'?'selected':'' ?>>Đã hủy</option>
-  </select>
-  <div class="actions">
-    <button class="btn" type="submit">Cập nhật</button>
-    <a class="btn secondary" href="orders.php">Quay lại</a>
-  </div>
-</form>
-
-<?php include __DIR__ . '/includes/admin_footer.php'; ?>
+<div class="panel-heading"><div><h2>Chi tiết đơn hàng #<?=$id?></h2><p>Ngày tạo: <?=e($order['created_at'])?></p></div><a class="btn secondary" href="/admin/orders.php">← Danh sách đơn</a></div>
+<div class="admin-info-grid"><div class="card"><h3>Người nhận</h3><p><strong><?=e($order['customer_name'])?></strong></p><p><?=e($order['customer_phone'])?></p><p><?=e($order['customer_email'])?></p><p><?=e($order['customer_address'])?></p></div><div class="card"><h3>Tình trạng đơn hàng</h3><p><?=e($order['status'])?></p><p>Tổng tiền hàng: <strong><?=money($order['total_price'])?></strong></p></div></div>
+<h2 class="admin-section-title">Sản phẩm trong đơn</h2><div class="table-wrap"><table class="table"><thead><tr><th>Sản phẩm</th><th>Size</th><th>Số lượng</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead><tbody><?php while($item=$items->fetch_assoc()):?><tr><td><div class="product-cell"><img src="<?=e(product_image($item['image']))?>" alt=""><span><?=e($item['name']??'Sản phẩm đã xóa')?></span></div></td><td><?=e($item['shoe_size']?:'—')?></td><td><?=(int)$item['quantity']?></td><td><?=money($item['price'])?></td><td><?=money($item['price']*$item['quantity'])?></td></tr><?php endwhile; ?></tbody></table></div>
+<form class="form status-form" method="post" action="/admin/order_update.php"><?=csrf_field()?><input type="hidden" name="id" value="<?=$id?>"><label for="order-status">Cập nhật trạng thái đơn</label><select id="order-status" name="status"><?php foreach(['Đang xử lý','Hoàn tất','Đã hủy'] as $s): ?><option value="<?=e($s)?>" <?=$order['status']===$s?'selected':''?>><?=e($s)?></option><?php endforeach; ?></select><button class="btn" type="submit">Lưu trạng thái</button></form>
+<?php include __DIR__.'/includes/admin_footer.php'; ?>
